@@ -1,0 +1,257 @@
+
+                                     Zuse Z3
+
+  The Z3 is considered to be the world's first programmable digital computing
+device.  It was an electromechanical computer built By Konrade Zuse and 
+completed in 1941.  It was based upon Zuse's Z1, which was a fully mechanical
+machine that never really ran very well.  Archetecturally speaking, the Z1 and
+the Z3 are very similar, operating on the same command set, except that the Z3
+had the square root function that the Z1 did not.  Other than this, programs
+written for either machine could actually be run on the other.
+
+  Although the Z3 was not by Turing's definition a general purpose computer,
+mainly for lacking descision making and program control statements, it was
+a remarkable machine.  The Z3 operated on 22 bit floating point numbers. 
+Floating point was unheard of on early machines and yet this was the number
+mode the Z3 used.  Another remarkable feature of this machine is that it had
+several floating point exceptions built in that would stop the machine and
+indicate which type of error had occurred.
+
+  Because the machine was electro-mechanical it was quite slow, only performing
+about 3 additions every 2 seconds, or one multiplication in 3 seconds.
+
+  The Z3 had a memory of 60 22-bit words which could be used to hold data.  
+Programs however came from punched tape.  The Z3 would retrieve the next
+instruction from the tape and execute it, continuing in this fashion until the
+machine ran out of tape.  A primitive form of looping could be achieved by
+taping one end of tape to the other in a continuous loop, but other than this
+there was no looping possible on the Z3.
+
+Number Format:
+==============
+  The number format of the Z3 is stored in 22-bit floating point format.  The
+exponent was stored in 2s compliment and therefore could hold an exponent 
+ranging from -64 to +63, however -64 is used to inidicate a number whose value
+is zero while +63 is used to indicate infinity, therefore the actual range of
+exponents was -63 to +62.
+
+  The mantissa of the number held the 14 bits to the right of the assumed
+decimal point.  a 1 bit is always assumed to preceed the 14 bits of the 
+mantissa giving an actual size of 15 bits for the mantissa.  It is due to the
+assumed 1 bit that -64 is used to indicate a zero.  The arithmetic circuits of
+the Z3 would act appropriately if a -64 occurs in the exponent position.
+
+S EEEEEEE MMMMMMMMMMMMMM
+| \     \ \             \
+|  \     \ ------------------ Mantissa, 14 bits.
+|   ------------------------- Exponent, 7 bits.
++---------------------------- Sign, 0=positive, 1=negative.
+
+Instruction Set:
+================
+  The Z3 understood 9 different instructions.  These included 2 instructions 
+for accepting input from the user and displaying results, 2 for reading and
+writing the memory array and 5 arithmetic instructions.  The original 
+instruction names may have some meaning in German, but not a whole lot of 
+meaning to English speakers, therefore the assembler included with the 
+simulator will support both the original opcodes as well as a set of opcodes
+that are more familiar to English speakers.
+
+Original Opcode  Function          Bit pattern        English opcode
+--------------------------------------------------------------------
+      Lu         Read Keyboard     01 110000          IN
+      Ld         Display Result    01 111000          OUT
+      Pr z       Load Address z    11 zzzzzz          LOD
+      Ps z       Store Address z   10 zzzzzz          STO
+      Lm         Multiplication    01 001000          MUL
+      Li         Division          01 010000          DIV
+      Lw         Square Root       01 011000          ROOT
+      Ls1        Addition          01 100000          ADD
+      Ls2        Subtraction       01 101000          SUB
+
+Programming Model:
+==================
+  It is important to understand a little about the programming model used by
+the Z3.  Think of the machine as having two registers, R1 and R2.  When R1 
+is clear then the next Pr instruction will load R1, all subsequent Pr 
+instructions will load R2.  R1 will only be considered clear upon a machine
+startup, when a Ps instruction has been executed or a Ld instruction has
+been executed.  So think of it this way, Unless the last instruction was Ld or
+Ps then any Pr will load R2.  Only if the last instruction was Ld or Ps will
+R1 be loaded by a Pr instruction.
+
+  The Lu instruction always places the value into R1 and leaves R2 cleared.
+
+  All arithmetic instructions will place the answer in R1 and leave R2 cleared.
+
+Assembler:
+==========
+  The emulator contains a built in assembler for making program tapes for the
+Z3.  the format for the assembly lines is as follows:
+
+[label:]   command   [arg1,arg2,...argn]    [; comment ]
+
+Assembler Pseudo-ops
+====================
+  The assembler provides several pseudo-ops to make programming a bit simpler:
+
+EQU expr       Set last defined label equal to value
+REP expr       Setup n repetes of code
+ENDREP         Ends a REP block
+JUMP lbl       Jump to specified label
+CALL lbl       Encode subroutine at label
+RET            Return to previous position
+SET lbl,expr   Set value of label to n
+
+Console:
+========
+  The operator console consists of two sections.  The upper section contains
+lamps for indicating output and error conditions while the lower section 
+contains arrays of buttons used to provide input to the Z3.
+
+  When the Z3 stops on a Lu command the "Eintasten" lamp will be lit and the
+computer will wait for you to enter a number on the lower console.  There are
+four columns of numbered buttons used to enter the value for the number.  There
+is also a row of buttons along the bottom labeled -9 to +9 that are used to
+enter the exponent.  By pressing the needed buttons you can enter in any 4
+digit number with an exponent between -9 and +9.  The numbered buttons are
+assumed to be an integer number with the assumed decimal to the right of the
+fourth column of numbers.  The exponent buttons will move the assumed decimal
+point.  So for example, if you want to enter .5 you would set the number
+buttons to 0 0 0 5 and then select the -1 exponent button.  The number 50 could
+be entered as eithter 0 0 5 0 and the 0 exponent button or as 0 0 0 5 with the
++1 exponent button.
+
+  The upper pannel contains arrays of lights that work similar to the buttons.
+The Z3 will indicate its results by lighting the necessary lights to indicate
+the number it is outputting.  The assumed decimal point is located between the
+1st and 2nd digits and is indicated by an arrow.  Any exponent light other than
+0 moves the assumed decimal from this point.
+
+  There are a series of lamps on the left side of the upper panel that indicate
+when a computation error has occured.  If an error occurs the "Alarm" light
+will be lit and the appropriate error lamp will be lit to indicate the type
+of error.  The errors are as follows from top to bottom:
+
+The zero lamp is lit if the calculation underflows to 0.  This occurs when a
+number after calculation would have an exponent less that -63.
+
+The infinity lamp is lit if the calculation overflows to infinity.  This occurs
+when a number after calculation would have an exponent greater than +62.
+
+The zero times infinity lamp is lit if the multiplication command is executed
+with one argument being zero and the other being infinity.
+
+The zero divided by zero lamp is lit if the division command is executed and
+both arguments are zero.  It is not an error to divide by zero if the other
+number is nonzero.
+
+The infinity divided by infinity lamp is lit if the division command is
+executed and both arguments are infinity.
+
+The infinity plus/minus infinity lamp is lit if the addition or subtraction 
+command is executed and both arguments are infinity.
+
+The Anzeige Loeschen button is used to clear the number lamps after the
+answer has been retrieved and you want to clear the lamps.
+
+The next set of buttons are clear speculation on my part since I can find no
+documentation describing their function, yet these buttons appear on pictures
+of the Z3 console.  These buttons appear to match the commands of the machine
+and therefore MAY have been used to execute the commands manually.  This
+column of buttons is on the right side of the lower console:
+
+  * - This button will execute the multiplication instruction. producing
+      R1 = R1 * r2
+
+  / - This button will execute the division instruction. producing
+      R1 = R1 / R2
+
+  Root - This button will execute the square root instruction. producing
+      R1 = sqrt(R1)
+
+  + - This button will execute the addition instruction producing
+      R1 = R1 + R2
+
+  - - This button will execute the subtraction instruction producing
+      R1 = R1 - R2
+
+  Up Arrow - This button will retrieve a value from memory.  For even more
+      speculation on this button, the address to be read will be taken from
+      the number buttons in the 3rd and 4th column.  If the number exceeds
+      59 then the number will be 59.
+
+  Down Arrow - This button will write R1 to memory.  The address will be
+      taken in the same manner as the up arrow.
+
+  A - This button will display the number in R1
+
+  The "Go" and "Reload" buttons are specific to the emulator.  The "Go" button
+will cause the machine to start automatic calculation.  If the machine is
+stopped awaiting input, then this button is also used to restart the machine
+after the desired number has been set on the button array.  The documentation
+I have does not indicate how the machine was started, but certainly it had to
+have some equivalent of the "Go" button.
+  
+  The "Reload" button will take the current tape and reload it in the tape 
+reader so that the next instruction executed will be the first instruction on
+the tape.
+
+Assumptions:
+============
+  Due to limited documentation I have had to make some assumptions about how
+the machine was used.  I have found good documentation on the internal workings
+so the simulator should be accurate as far as how instructions are executed.
+
+1. It is not certain whether or not memory could be altered outside of a 
+   running program.  The assumption is that it could not and therefore a 
+   program would need to be run having the user enter constants and storing
+   them into memory for later programs to use.  The simulator will however
+   let you modify memory from the memory tab.
+
+2. When the Z3 accepted input from the user keyboard, the documentation I have
+   does not indicate where any assumed decimal place is located.  As such the
+   way the simulation is coded, if the exponent key of 0 is pressed then the
+   4 digits will represent an integer value, with the decimal point being to 
+   the right of the 4th digit.  If -1 is pressed then the left most keys will
+   represent the integer portion and the 4th would be the fractional.  Other
+   exponent keys move the decimal point in this fashion.
+
+3. Like input, the output in the documentaion that I have does not indicate
+   where the assumed decimal point is located.  I have located the assumed
+   decimal point to be between digits 1 and 2, where the arrow is located.  If
+   the lit exponent lamp is 0 then this is the decimal point, any other lit
+   exponent lamp moves the decimal point from this position.
+
+4. The documentation was a bit fuzzy on what number will be in a register when
+   it is cleared.  The documentation mentions that a relay is opened to set the
+   value to 0, but does not indicate if this is merely clearing all the bits 
+   to zeros, which would actually leave 1.0 as the floating point value or if
+   it sets the register to 0x400000 which is a floating point zero.  The
+   assumption I made is that the register is cleared to binary zeroes leaving
+   a floating point value of 1.0 actually in the register.
+
+5. Like a cleared register, memory is cleared to all binary zeros upon start of
+   the simulator, meaning that all of memory actually contains floating point
+   1.0s.
+
+  It is not a good idea to rely on any assumtpions made since they may not be
+accurate to the real machine.  When in doubt code to avoid the assumptions.  If
+I ever find documentation confirming or proving wrong any of my assumptions I 
+will make appropriate changes to the simulator and documentation.
+
+Sample programs:
+================
+
+Here is a sample program that will add up the first 10 memory cells and 
+display the result.  This also shows the use of a label for selecting which
+memory to read as well as how the rep pseudo-op is used:
+
+var1:   equ     1            ; Will use this for the memory position
+        pr      0            ; Read first memory cell into R1
+        rep     9            ; Will need to read and add 9 more cells
+        pr      var1         ; Read next memory cell into R2
+        ls1                  ; and add to sum
+        set     var1,var1+1  ; Point to next memory cell
+        endrep               ; end of repeat block
+        ld                   ; display the result
